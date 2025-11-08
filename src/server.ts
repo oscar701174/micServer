@@ -33,7 +33,7 @@ class HlsServer {
     public listen(port: number) {
         this.setupMiddleware();
         this.app.get('/', (req, res) => {
-            res.send('HLS Server is running!');
+            res.send('HLS Server is running successfully!');
         });
         this.app.listen(port, () => {
             console.log(`HLS Server is running on http://localhost:${port}`);
