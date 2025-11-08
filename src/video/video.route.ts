@@ -23,7 +23,7 @@ function isYouTube(url: string): boolean {
 }
 
 router.get('/', (req: Request, res: Response) => {
-    res.send('Video route is working!');
+    res.send('Video route is working successfully!');
 });
 
 // 🎬 GET /video/download?url=... (yt-dlp 사용)
