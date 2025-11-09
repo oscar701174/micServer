@@ -27,6 +27,42 @@ router.get('/', (req: Request, res: Response) => {
     res.send('Video route is working successfully!');
 });
 
+router.get('/play/:clipId', (req: Request, res: Response) => {
+    const clipId = req.params.clipId;
+    const playlistPath = path.join(TMP_DIR, 'hls', clipId, 'playlist.m3u8');
+    
+    if (!fs.existsSync(playlistPath)) {
+        return res.status(404).json({ error: 'Playlist not found' });
+    }
+
+    // Return HTML5 video player
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Video Player</title>
+            <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+        </head>
+        <body>
+            <video id="video" controls style="width: 100%; max-width: 800px;"></video>
+            <script>
+                if(Hls.isSupported()) {
+                    const video = document.getElementById('video');
+                    const hls = new Hls();
+                    hls.loadSource('/video/hls/${clipId}/playlist.m3u8');
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        video.play();
+                    });
+                }
+            </script>
+        </body>
+        </html>
+    `;
+    
+    res.send(html);
+});
+
 
 router.get('/downloadClip', async (req: Request, res: Response) => {
     const {url, start, end} = req.query;
@@ -50,6 +86,33 @@ try {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+router.get('/downloadHlsClip', async (req: Request, res: Response) => {
+    const {url, start, end} = req.query;
+    if (typeof url !== 'string' || typeof start !== 'string' || typeof end !== 'string') {
+        return res.status(400).json({ error: "Missing or invalid parameters" });
+    }
+      const youtubeRegex = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
+  if (!youtubeRegex.test(url)) {
+    return res.status(400).json({ error: "Only YouTube URLs are allowed" });
+  }
+  
+try {   
+    const filePath = await extractSegment(url, start, end);
+    const m3u8Path = await convertToHLS(filePath);
+    res.status(200).json({
+      message: "Segment downloaded and converted to HLS successfully",
+      m3u8Path: m3u8Path
+    });
+  } catch (err) {
+    const error = err as Error;
+    console.error("Download or conversion failed:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 // 🎬 GET /video/download?url=... (yt-dlp 사용)
 router.get('/download', async (req: Request, res: Response) => {
@@ -209,5 +272,9 @@ router.get('/direct', async (req: Request, res: Response) => {
         res.end();
     }
 });
+
+
+
+
 
 export default router;

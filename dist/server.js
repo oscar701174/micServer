@@ -1,6 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
+import path from 'path';
 import videoRouter from './video/video.route.js';
 class HlsServer {
     app;
@@ -18,6 +19,8 @@ class HlsServer {
             console.log("this is a middleware log");
             next();
         });
+        // Serve HLS files from tmp directory
+        this.app.use('/video/hls', express.static(path.join(process.cwd(), 'tmp/hls')));
         this.setupRoutes();
         this.app.use(express.json());
         // this.app.use((req,res,next) => {
