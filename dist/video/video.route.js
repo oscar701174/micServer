@@ -2,7 +2,8 @@ import { Router } from "express";
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { convertToHLS, downloadAndConvertToHLS } from "./video.service.js";
+import { convertToHLS, downloadAndConvertToHLS } from "./video.service1.js";
+import { extractSegment } from "./video.service.js";
 const router = Router();
 const TMP_DIR = path.resolve("./tmp");
 if (!fs.existsSync(TMP_DIR)) {
@@ -19,7 +20,29 @@ function isYouTube(url) {
     }
 }
 router.get('/', (req, res) => {
-    res.send('Video route is working!');
+    res.send('Video route is working successfully!');
+});
+router.get('/downloadClip', async (req, res) => {
+    const { url, start, end } = req.query;
+    if (typeof url !== 'string' || typeof start !== 'string' || typeof end !== 'string') {
+        return res.status(400).json({ error: "Missing or invalid parameters" });
+    }
+    const youtubeRegex = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
+    if (!youtubeRegex.test(url)) {
+        return res.status(400).json({ error: "Only YouTube URLs are allowed" });
+    }
+    try {
+        const filePath = await extractSegment(url, start, end);
+        res.status(200).json({
+            message: "Segment downloaded successfully",
+            file: filePath
+        });
+    }
+    catch (err) {
+        const error = err;
+        console.error("Download failed:", error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 // 🎬 GET /video/download?url=... (yt-dlp 사용)
 router.get('/download', async (req, res) => {
